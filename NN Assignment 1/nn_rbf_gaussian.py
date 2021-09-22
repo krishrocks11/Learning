@@ -10,6 +10,7 @@ from scipy.io import loadmat
 import numpy as np
 import math
 import random
+from scipy.spatial import distance
 
 data_test = loadmat('data_test.mat')
 data_train = loadmat('data_train.mat')
@@ -24,6 +25,14 @@ index_seed = random.sample(range(0,329), num_centers)
 print(index_seed)
 for i in range(num_centers):
     centers[i,:] = db_data_train[index_seed[i]]
+    
+#Calculate Sigma based on Centers. sigma = dmax/sqrt(2m). m is number of centers. dmax is max distance between centers
+d_max = 0
+for i in range(num_centers):
+    for j in range(num_centers):
+        if distance.euclidean(centers[i], centers[j]) > d_max:
+            d_max = distance.euclidean(centers[i], centers[j])
+
 #print(db_data_train)
 #print(db_data_test)
 #print(db_label_train)
@@ -47,8 +56,12 @@ db_avg2 = db_class2/num_class_2
 
 
 
-ligma = 0.707
+#ligma = 0.707
 #print(num_class_1)
+ligma = d_max/math.sqrt(2*num_centers)
+print(d_max)
+print(ligma)
+
 db_phi = np.zeros([330,num_centers])
 
 def fi(x,c,sigma):
