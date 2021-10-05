@@ -30,13 +30,17 @@ X_test = db_data_test
 y_test = db_label_test
 
 from sklearn.svm import SVC
-svclassifier = SVC(kernel='rbf', gamma=0.03)
-svclassifier.fit(X_train, y_train)
+svclassifier = SVC(kernel='rbf', gamma='scale')
+svclassifier.fit(X_train, y_train.ravel())
 #To use Gaussian kernel, you have to specify 'rbf' as value for the Kernel parameter of the SVC class.
 
 #Prediction and Evaluation
-y_pred = svclassifier.predict(X_test)
 from sklearn.metrics import classification_report, confusion_matrix
-print(confusion_matrix(y_test, y_pred))
-print(classification_report(y_test, y_pred))
+y_val = svclassifier.predict(X_train)
+print(confusion_matrix(y_train, y_val))
+print(classification_report(y_train, y_val))
+y_pred = svclassifier.predict(X_test)
+print(y_pred)
+#print(confusion_matrix(y_test, y_pred))
+#print(classification_report(y_test, y_pred))
 #The output of the Kernel SVM with Gaussian kernel looks like this:
