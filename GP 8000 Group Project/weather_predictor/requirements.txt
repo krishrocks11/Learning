@@ -1,0 +1,7 @@
+requests
+numpy
+pandas
+matplotlib
+scikit-learn
+torch
+optuna
