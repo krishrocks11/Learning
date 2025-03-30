@@ -1,0 +1,22 @@
+{
+    "target_mean": [
+        31.720775604248047,
+        24.948699951171875,
+        34.74277877807617
+    ],
+    "target_std": [
+        1.7839112281799316,
+        1.207750678062439,
+        8.456432342529297
+    ],
+    "hyperparameters": {
+        "hidden_dim": 64,
+        "num_layers": 2,
+        "dropout": 0.1,
+        "lr": 0.001,
+        "alpha": 0.5,
+        "penalty_factor": 2.0
+    },
+    "best_validation_loss": 45.90578420392368,
+    "stopped_epoch": 20
+}

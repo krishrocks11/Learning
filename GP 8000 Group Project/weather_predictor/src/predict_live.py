@@ -181,7 +181,10 @@ def main(args):
                  if comp.get('api_general_forecast'):
                       api_temp = comp['details'].get('api_avg_temp')
                       api_wind = comp['details'].get('api_wind')
-                      print(f"  API Forecast: AvgT={api_temp:.2f if api_temp is not None else 'N/A'}, HighWind={api_wind:.2f if api_wind is not None else 'N/A'}")
+                      # Format strings separately to avoid ValueError with 'N/A'
+                      api_temp_str = f"{api_temp:.2f}" if api_temp is not None else "N/A"
+                      api_wind_str = f"{api_wind:.2f}" if api_wind is not None else "N/A"
+                      print(f"  API Forecast: AvgT={api_temp_str}, HighWind={api_wind_str}")
                  print(f"  Comparison (Temperature): {comp['comparison'].get('temperature', 'error')}")
                  print(f"  Comparison (Wind): {comp['comparison'].get('wind', 'error')}")
             else:
