@@ -1,0 +1,11 @@
+# General Training Configuration
+seed: 42
+val_size: 0.2  # Validation set size (portion of training data)
+
+# Data augmentation settings
+augmentation:
+  multiplier: 1  # Number of augmented examples per original
+  techniques: ['synonym', 'backtranslation', 'deletion', 'swap']
+
+# Task 3 specific settings
+dataset_sizes: [0.1, 0.5, 1.0]

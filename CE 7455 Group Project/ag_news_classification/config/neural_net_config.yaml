@@ -1,0 +1,24 @@
+# Neural Network Configuration
+model_type: 'cnn'  # 'cnn' or 'rnn'
+vocab_size: 50000
+embedding_dim: 300
+max_length: 100
+min_freq: 2
+
+# CNN-specific parameters
+num_filters: 100
+filter_sizes: [3, 4, 5]
+
+# RNN-specific parameters
+hidden_dim: 256
+num_layers: 2
+bidirectional: true
+cell_type: 'lstm'  # 'lstm' or 'gru'
+
+# Training parameters
+batch_size: 64
+learning_rate: 0.001
+num_epochs: 10
+dropout_rate: 0.5
+save_model: true
+model_save_path: 'models/saved/neural_net_model.pt'

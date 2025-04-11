@@ -1,0 +1,5 @@
+{
+    "python.analysis.extraPaths": [
+        "./ag_news_classification"
+    ]
+}

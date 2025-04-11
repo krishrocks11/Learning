@@ -1,0 +1,6 @@
+alpha: 0.1
+max_features: null
+ngram_range:
+- 1
+- 3
+vectorizer: count
