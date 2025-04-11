@@ -37,8 +37,9 @@ def run(config, model_type=None):
     # Load AG News dataset
     data = load_ag_news()
     
-    # Define augmentation techniques
-    augmentation_techniques = ['synonym', 'backtranslation', 'deletion', 'swap']
+    # Define augmentation techniques - removed backtranslation to speed up execution
+    augmentation_techniques = ['synonym', 'deletion', 'swap']
+    logging.info(f"Using augmentation techniques: {augmentation_techniques}")
     
     # Create results directory
     os.makedirs('results/task2', exist_ok=True)
@@ -196,8 +197,29 @@ def run_bert_model(data, device, config, augmentation_name):
     metrics = evaluate_bert(trained_model, dataloaders['test'], device)
     metrics['training_time'] = training_time  # Actually just inference time since no training
     
-    # Save pseudo-training history
-    pd.DataFrame(history).to_csv(f'results/task2/bert_{prefix}_history.csv', index=False)
+    # Save pseudo-training history - Fix: ensure all values have the same length
+    # Convert each value to a list of the same length to avoid DataFrame error
+    processed_history = {}
+    for key, value in history.items():
+        if isinstance(value, (list, tuple, np.ndarray)):
+            processed_history[key] = value
+        else:
+            # If not a sequence, convert to a single-item list
+            processed_history[key] = [value]
+    
+    # Make sure all lists have the same length (pad if necessary)
+    max_length = max(len(v) for v in processed_history.values())
+    for key in processed_history:
+        if len(processed_history[key]) < max_length:
+            # Pad with the last value or None
+            current_length = len(processed_history[key])
+            if current_length > 0:
+                pad_value = processed_history[key][-1]  # Use the last value for padding
+            else:
+                pad_value = None
+            processed_history[key].extend([pad_value] * (max_length - current_length))
+    
+    pd.DataFrame(processed_history).to_csv(f'results/task2/bert_{prefix}_history.csv', index=False)
     
     return metrics
 

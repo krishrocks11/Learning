@@ -11,8 +11,34 @@ import seaborn as sns
 from datetime import datetime
 from tqdm import tqdm
 
+# Add NLTK import
+import nltk
+
 from tasks import task1, task2, task3
 from src.utils import setup_logging
+
+def download_nltk_resources():
+    """Download required NLTK resources if they aren't already available"""
+    logging.info("Checking and downloading required NLTK resources")
+    
+    # List of NLTK resources needed for the project
+    resources = [
+        'punkt',
+        'wordnet',
+        'omw-1.4',  # Open Multilingual WordNet
+        'averaged_perceptron_tagger',
+        'stopwords'
+    ]
+    
+    for resource in resources:
+        try:
+            logging.info(f"Checking NLTK resource: {resource}")
+            nltk.data.find(f'tokenizers/{resource}')
+            logging.info(f"NLTK resource {resource} already downloaded")
+        except LookupError:
+            logging.info(f"Downloading NLTK resource: {resource}")
+            nltk.download(resource)
+            logging.info(f"Successfully downloaded {resource}")
 
 def parse_args():
     parser = argparse.ArgumentParser(description='AG News Classification')
@@ -164,6 +190,9 @@ def main():
     setup_logging(log_file, level=args.log_level)
     
     logging.info("Starting AG News Classification Project")
+    
+    # Download required NLTK resources
+    download_nltk_resources()
     
     # Load configuration
     config = load_config(args.config)

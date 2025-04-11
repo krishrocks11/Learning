@@ -38,14 +38,15 @@ def run(config, model_type=None):
     # Define dataset sizes
     dataset_sizes = [0.1, 0.5, 1.0]  # 10%, 50%, 100%
     
-    # Define augmentation combinations
+    # Define augmentation combinations - removed backtranslation which was slow
     augmentation_combinations = [
         [],  # No augmentation (baseline)
         ['synonym'],  # Single augmentation
-        ['backtranslation'],  # Single augmentation
-        ['synonym', 'backtranslation'],  # Multiple augmentations
+        ['deletion'],  # Single augmentation (replaced backtranslation)
+        ['synonym', 'deletion'],  # Multiple augmentations
         ['synonym', 'deletion', 'swap']  # Multiple augmentations
     ]
+    logging.info(f"Using augmentation combinations: {augmentation_combinations}")
     
     # Create results directory
     os.makedirs('results/task3', exist_ok=True)
@@ -246,6 +247,31 @@ def run_bert_model(data, device, config, dataset_size, augmentation_name):
     plt.tight_layout()
     plt.savefig(f'results/task3/bert_size{int(dataset_size*100)}_{augmentation_name}_cm.png')
     plt.close()
+    
+    # Save history data - Fix for DataFrame creation with values of different lengths
+    # Convert each value to a list of the same length to avoid DataFrame error
+    processed_history = {}
+    for key, value in history.items():
+        if isinstance(value, (list, tuple, np.ndarray)):
+            processed_history[key] = value
+        else:
+            # If not a sequence, convert to a single-item list
+            processed_history[key] = [value]
+    
+    # Make sure all lists have the same length (pad if necessary)
+    max_length = max(len(v) for v in processed_history.values())
+    for key in processed_history:
+        if len(processed_history[key]) < max_length:
+            # Pad with the last value or None
+            current_length = len(processed_history[key])
+            if current_length > 0:
+                pad_value = processed_history[key][-1]  # Use the last value for padding
+            else:
+                pad_value = None
+            processed_history[key].extend([pad_value] * (max_length - current_length))
+    
+    # Save the processed history
+    pd.DataFrame(processed_history).to_csv(f'results/task3/{prefix}_history.csv', index=False)
     
     return metrics
 
