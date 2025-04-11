@@ -23,7 +23,7 @@ CE 7455 Group Project/ag_news_classification/models/
 # Ignore cache files
 *.pyc
 
-__pycache__/
+*__pycache__/
 # Ignore Jupyter Notebook checkpoints   
 *.ipynb_checkpoints
 
