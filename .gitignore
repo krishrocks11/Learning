@@ -1,8 +1,8 @@
 # Ignore node_modules folder
 node_modules/
 
-# Ignore log files
-*.log
+# Ignore all log files
+**/*.log
 
 # Ignore temporary files
 *.tmp
@@ -20,10 +20,12 @@ Thumbs.db
 # Add your folder paths here
 CE 7455 Group Project/ag_news_classification/models/
 
-# Ignore cache files
-*.pyc
+# Ignore .pyc files in any directory
+**/*.pyc
 
-*__pycache__/
-# Ignore Jupyter Notebook checkpoints   
-*.ipynb_checkpoints
+# Ignore all __pycache__ directories
+**/__pycache__/
+
+# Ignore all Jupyter Notebook checkpoints   
+**/.ipynb_checkpoints
 
