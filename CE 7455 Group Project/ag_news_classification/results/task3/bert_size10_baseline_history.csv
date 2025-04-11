@@ -1,0 +1,2 @@
+train_loss,val_loss,val_accuracy,time_per_epoch
+,,0.9925,
