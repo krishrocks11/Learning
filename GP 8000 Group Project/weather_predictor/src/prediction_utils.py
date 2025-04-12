@@ -56,7 +56,7 @@ def predict_weather(model, date_str):
     return prediction.numpy()[0]
 
 
-def compare_predictions_with_live_api(model_pred, date_str, target_mean, target_std):
+def compare_predictions_with_live_api(model_pred, date_str, target_mean, target_std, verbose=False):
     """
     Fetches live 24-hour forecast data for a given date and compares the
     extremeness of the model prediction with the live API forecast using z-scores.
@@ -68,6 +68,7 @@ def compare_predictions_with_live_api(model_pred, date_str, target_mean, target_
                         so this comparison is approximate.
         target_mean (torch.Tensor or list/numpy array): Mean values [max_temp, min_temp, max_wind] from training data.
         target_std (torch.Tensor or list/numpy array): Std dev values [max_temp, min_temp, max_wind] from training data.
+        verbose (bool): Whether to print detailed information. Default is False.
 
     Returns:
         dict: A dictionary containing comparison results:
@@ -100,14 +101,12 @@ def compare_predictions_with_live_api(model_pred, date_str, target_mean, target_
     if isinstance(target_std, torch.Tensor):
         target_std = target_std.numpy()
 
-    print(f"\n--- Comparing Model Prediction for {date_str} with Live API ---")
-
+    # Only print introductory message if verbose mode is enabled
+    if verbose:
+        print(f"\n--- Comparing Model Prediction for {date_str} with Live API ---")
+        print(f"Fetching live 24hr forecast from: {config.API_24HR_FORECAST_URL}")
+    
     # Fetch live API data
-    # Note: The API URL might need adjustment if it requires a date parameter.
-    # The current URL seems to provide the *latest* 24hr forecast, not for a specific past/future date.
-    # We will fetch the latest and assume it's relevant for comparison for demo purposes.
-    # A more robust solution might need a different API or historical data source.
-    print(f"Fetching live 24hr forecast from: {config.API_24HR_FORECAST_URL}")
     api_data = data_utils.get_data_gov_sg_api(config.API_24HR_FORECAST_URL)
 
     results = {
@@ -147,8 +146,9 @@ def compare_predictions_with_live_api(model_pred, date_str, target_mean, target_
         results["api_general_forecast"] = general_forecast
 
         if general_forecast:
-            print("Live API data fetched successfully.")
-            print("API General Forecast:", json.dumps(general_forecast, indent=2))
+            if verbose:
+                print("Live API data fetched successfully.")
+                print("API General Forecast:", json.dumps(general_forecast, indent=2))
 
             try:
                 # Temperature Comparison
@@ -160,19 +160,25 @@ def compare_predictions_with_live_api(model_pred, date_str, target_mean, target_
                 results["details"]["api_avg_temp"] = api_avg_temp
                 results["details"]["api_temp_z"] = api_temp_z
 
-                print(f"\nTemperature - Model Avg: {model_avg_temp:.2f}°C (Z: {model_temp_z:.2f}), API Avg: {api_avg_temp:.2f}°C (Z: {api_temp_z:.2f})")
+                if verbose:
+                    print(f"\nTemperature - Model Avg: {model_avg_temp:.2f}°C (Z: {model_temp_z:.2f}), API Avg: {api_avg_temp:.2f}°C (Z: {api_temp_z:.2f})")
+                
                 if model_temp_z > api_temp_z:
-                    print("  >> Model predicts a more extreme temperature forecast.")
+                    if verbose:
+                        print("  >> Model predicts a more extreme temperature forecast.")
                     results["comparison"]["temperature"] = "model"
                 elif api_temp_z > model_temp_z:
-                    print("  >> API predicts a more extreme temperature forecast.")
+                    if verbose:
+                        print("  >> API predicts a more extreme temperature forecast.")
                     results["comparison"]["temperature"] = "api"
                 else:
-                    print("  >> Model and API predict similar temperature extremeness.")
+                    if verbose:
+                        print("  >> Model and API predict similar temperature extremeness.")
                     results["comparison"]["temperature"] = "equal"
 
             except (KeyError, TypeError, ValueError) as e:
-                print(f"  Warning: Could not process API temperature data for comparison: {e}")
+                if verbose:
+                    print(f"  Warning: Could not process API temperature data for comparison: {e}")
                 results["comparison"]["temperature"] = "error"
 
             try:
@@ -183,30 +189,39 @@ def compare_predictions_with_live_api(model_pred, date_str, target_mean, target_
                 results["details"]["api_wind"] = api_wind_high
                 results["details"]["api_wind_z"] = api_wind_z
 
-                print(f"Wind Speed - Model Max: {model_wind:.2f} km/h (Z: {model_wind_z:.2f}), API High: {api_wind_high:.2f} km/h (Z: {api_wind_z:.2f})")
+                if verbose:
+                    print(f"Wind Speed - Model Max: {model_wind:.2f} km/h (Z: {model_wind_z:.2f}), API High: {api_wind_high:.2f} km/h (Z: {api_wind_z:.2f})")
+                
                 if model_wind_z > api_wind_z:
-                    print("  >> Model predicts a more extreme wind speed forecast.")
+                    if verbose:
+                        print("  >> Model predicts a more extreme wind speed forecast.")
                     results["comparison"]["wind"] = "model"
                 elif api_wind_z > model_wind_z:
-                    print("  >> API predicts a more extreme wind speed forecast.")
+                    if verbose:
+                        print("  >> API predicts a more extreme wind speed forecast.")
                     results["comparison"]["wind"] = "api"
                 else:
-                    print("  >> Model and API predict similar wind speed extremeness.")
+                    if verbose:
+                        print("  >> Model and API predict similar wind speed extremeness.")
                     results["comparison"]["wind"] = "equal"
 
             except (KeyError, TypeError, ValueError) as e:
-                print(f"  Warning: Could not process API wind speed data for comparison: {e}")
+                if verbose:
+                    print(f"  Warning: Could not process API wind speed data for comparison: {e}")
                 results["comparison"]["wind"] = "error"
         else:
-            print("Warning: 'general' forecast data not found in the fetched API response.")
+            if verbose:
+                print("Warning: 'general' forecast data not found in the fetched API response.")
             results["comparison"]["temperature"] = "api_data_missing"
             results["comparison"]["wind"] = "api_data_missing"
     else:
-        print("Warning: Failed to fetch or parse live API data for comparison.")
+        if verbose:
+            print("Warning: Failed to fetch or parse live API data for comparison.")
         results["comparison"]["temperature"] = "api_fetch_failed"
         results["comparison"]["wind"] = "api_fetch_failed"
 
-    print("--- Comparison Finished ---")
+    if verbose:
+        print("--- Comparison Finished ---")
     return results
 
 # --- Example Usage (for testing this module directly) ---
@@ -234,7 +249,7 @@ if __name__ == "__main__":
 
         # Test compare_predictions_with_live_api
         print(f"\nTesting comparison with live API for date: {sample_date}")
-        comparison_result = compare_predictions_with_live_api(prediction, sample_date, mock_target_mean, mock_target_std)
+        comparison_result = compare_predictions_with_live_api(prediction, sample_date, mock_target_mean, mock_target_std, verbose=True)
 
         if comparison_result:
             print("\nComparison Result Summary:")

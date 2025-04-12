@@ -105,6 +105,173 @@ def load_model_and_stats(model_type_name, models_base_dir):
 
     return model, target_mean, target_std
 
+def print_default_summary(all_results, date_str):
+    """Prints a very concise summary showing only the most extreme predictions and forecast text."""
+    print(f"\n--- Weather Forecast Summary for {date_str} ---")
+    
+    # Initialize variables to track extremes
+    highest_max_temp = -float('inf')
+    lowest_min_temp = float('inf')
+    highest_max_wind = -float('inf')
+    api_forecast_text = "N/A"
+    api_data_available = False
+    successful_models = []
+    model_avg_temp = None
+    api_avg_temp = None
+    api_high_wind = None
+    
+    # Collect data across all models
+    for model_name, result in all_results.items():
+        if result["status"] == "success":
+            successful_models.append(model_name)
+            pred = result["prediction"]
+            # Update predicted extremes
+            highest_max_temp = max(highest_max_temp, pred[0])
+            lowest_min_temp = min(lowest_min_temp, pred[1])
+            highest_max_wind = max(highest_max_wind, pred[2])
+            
+            # Extract API data if available (use the first one we find)
+            comp = result.get("comparison")
+            if comp and comp.get('api_data_fetched'):
+                api_data_available = True
+                
+                # Get forecast text if not already found
+                if api_forecast_text == "N/A" and comp.get('api_general_forecast'):
+                    forecast_data = comp.get('api_general_forecast', {})
+                    api_forecast_text = forecast_data.get('forecast', {}).get('text', "N/A")
+                    
+                    # Get temperature and wind data
+                    if 'temperature' in forecast_data:
+                        temp_low = forecast_data['temperature'].get('low')
+                        temp_high = forecast_data['temperature'].get('high')
+                        if temp_low is not None and temp_high is not None:
+                            api_avg_temp = (temp_low + temp_high) / 2.0
+                    
+                    if 'wind' in forecast_data and 'speed' in forecast_data['wind']:
+                        if 'high' in forecast_data['wind']['speed']:
+                            api_high_wind = forecast_data['wind']['speed']['high']
+
+    if not successful_models:
+        print("No successful model predictions were made.")
+        return
+        
+    print(f"Models run: {', '.join(m.upper() for m in successful_models)}")
+    
+    # Calculate model average temperature
+    if highest_max_temp > -float('inf') and lowest_min_temp < float('inf'):
+        model_avg_temp = (highest_max_temp + lowest_min_temp) / 2.0
+    
+    # Determine which source has more extreme values
+    if api_data_available:
+        # For temperature
+        if model_avg_temp is not None and api_avg_temp is not None:
+            # Compare which is more extreme (further from 25°C reference)
+            if abs(model_avg_temp - 25) > abs(api_avg_temp - 25):
+                temp_source = "Model"
+                temp_value = f"{model_avg_temp:.2f}°C"
+            else:
+                temp_source = "API" 
+                temp_value = f"{api_avg_temp:.2f}°C"
+            print(f"{temp_source} predicted a more extreme temperature of: {temp_value}")
+            
+        # For wind
+        if highest_max_wind > -float('inf') and api_high_wind is not None:
+            if highest_max_wind > api_high_wind:
+                wind_source = "Model"
+                wind_value = f"{highest_max_wind:.2f} km/h"
+            else:
+                wind_source = "API"
+                wind_value = f"{api_high_wind} km/h"
+            print(f"{wind_source} predicted a more extreme wind of: {wind_value}")
+            
+        # Show forecast
+        print(f"\nForecast: {api_forecast_text}")
+    else:
+        print("Live API data could not be fetched or processed.")
+
+def print_verbose_summary(all_results, date_str):
+    """Prints a detailed, structured summary for each model."""
+    print(f"\n--- Verbose Weather Prediction Summary for {date_str} ---")
+    
+    for model_name, result in all_results.items():
+        print(f"\n=== Model: {model_name.upper()} ===")
+        
+        if result["status"] == "success":
+            pred = result["prediction"]
+            comp = result.get("comparison")
+            
+            print("  Status: Success")
+            print("  Prediction:")
+            print(f"    Max Temperature: {pred[0]:.2f}°C")
+            print(f"    Min Temperature: {pred[1]:.2f}°C")
+            print(f"    Max Wind Speed: {pred[2]:.2f} km/h")
+            
+            if comp:
+                print("\n  API Comparison:")
+                print(f"    API Data Fetched: {comp.get('api_data_fetched', False)}")
+                
+                if comp.get('api_data_fetched'):
+                    # Print general forecast information
+                    if comp.get('api_general_forecast'):
+                        forecast = comp['api_general_forecast']
+                        print("\n    API General Forecast:")
+                        
+                        # Temperature
+                        if 'temperature' in forecast:
+                            temp = forecast['temperature']
+                            print(f"      Temperature: {temp.get('low')}°C to {temp.get('high')}°C")
+                            avg_temp = (temp.get('low', 0) + temp.get('high', 0)) / 2.0
+                            print(f"      Average Temperature: {avg_temp:.2f}°C")
+                        
+                        # Wind
+                        if 'wind' in forecast:
+                            wind = forecast['wind']
+                            speed = wind.get('speed', {})
+                            direction = wind.get('direction', 'N/A')
+                            print(f"      Wind Speed: {speed.get('low', 'N/A')} to {speed.get('high', 'N/A')} km/h {direction}")
+                        
+                        # Forecast text and validity period
+                        if 'forecast' in forecast:
+                            print(f"      Forecast: {forecast['forecast'].get('text', 'N/A')} ({forecast['forecast'].get('code', 'N/A')})")
+                        
+                        if 'validPeriod' in forecast:
+                            valid = forecast['validPeriod']
+                            print(f"      Valid Period: {valid.get('text', 'N/A')}")
+                            print(f"      Period Start: {valid.get('start', 'N/A')}")
+                            print(f"      Period End: {valid.get('end', 'N/A')}")
+                    
+                    # Print detailed comparison results
+                    if 'comparison' in comp:
+                        comparison = comp['comparison']
+                        print("\n    Comparison Results:")
+                        print(f"      Temperature Comparison: {comparison.get('temperature', 'N/A')}")
+                        print(f"      Wind Comparison: {comparison.get('wind', 'N/A')}")
+                    
+                    # Print detailed statistics
+                    if 'details' in comp:
+                        details = comp['details']
+                        print("\n    Statistical Details:")
+                        model_avg_temp = (pred[0] + pred[1]) / 2.0
+                        print(f"      Model Avg Temperature: {model_avg_temp:.2f}°C")
+                        print(f"      API Avg Temperature: {details.get('api_avg_temp', 'N/A')}")
+                        print(f"      Model Wind Speed: {pred[2]:.2f} km/h")
+                        print(f"      API Wind Speed: {details.get('api_wind', 'N/A')} km/h")
+                        
+                        if details.get('model_temp_z') is not None:
+                            print(f"      Temperature Z-Score (Model): {details.get('model_temp_z', 'N/A'):.2f}")
+                        if details.get('api_temp_z') is not None:
+                            print(f"      Temperature Z-Score (API): {details.get('api_temp_z', 'N/A'):.2f}")
+                        if details.get('model_wind_z') is not None:
+                            print(f"      Wind Z-Score (Model): {details.get('model_wind_z', 'N/A'):.2f}")
+                        if details.get('api_wind_z') is not None:
+                            print(f"      Wind Z-Score (API): {details.get('api_wind_z', 'N/A'):.2f}")
+                else:
+                    print("    API data could not be fetched for comparison details.")
+            else:
+                print("  Comparison data unavailable.")
+        else:
+            print(f"  Status: {result['status']}")
+            print(f"  Message: {result.get('message', 'No details')}")
 
 def main(args):
     """Main function for live prediction and comparison."""
@@ -129,6 +296,8 @@ def main(args):
 
     print(f"Models selected for prediction: {models_to_predict}")
     print(f"Prediction Date: {args.date}")
+    if args.verbose:
+        print("Verbose output enabled.")
 
     # --- 3. Prediction Loop ---
     all_results = {}
@@ -148,18 +317,22 @@ def main(args):
             all_results[model_name] = {"status": "error", "message": "Prediction function failed."}
             continue
 
-        print(f"\n{model_name.upper()} Model Prediction for {args.date}:")
-        # Assuming order: max_temp, min_temp, max_wind
-        print(f"  Max Temp: {model_prediction[0]:.2f}°C")
-        print(f"  Min Temp: {model_prediction[1]:.2f}°C")
-        print(f"  Max Wind: {model_prediction[2]:.2f} km/h")
+        # Only print intermediate results if verbose
+        if args.verbose:
+            print(f"\n{model_name.upper()} Model Prediction for {args.date}:")
+            print(f"  Max Temp: {model_prediction[0]:.2f}°C")
+            print(f"  Min Temp: {model_prediction[1]:.2f}°C")
+            print(f"  Max Wind: {model_prediction[2]:.2f} km/h")
+        else:
+            print(f"Prediction successful for {model_name.upper()}.")
 
-        # Compare with live API data
+        # Compare with live API data - pass the verbose flag
         comparison_results = prediction_utils.compare_predictions_with_live_api(
             model_pred=model_prediction,
             date_str=args.date,
             target_mean=target_mean,
-            target_std=target_std
+            target_std=target_std,
+            verbose=args.verbose  # Pass the verbose flag here
         )
 
         all_results[model_name] = {
@@ -168,29 +341,11 @@ def main(args):
             "comparison": comparison_results
         }
 
-    # --- 4. Print Final Summary (Optional) ---
-    print("\n--- Prediction Summary ---")
-    for model_name, result in all_results.items():
-        print(f"\nModel: {model_name.upper()}")
-        if result["status"] == "success":
-            pred = result["prediction"]
-            comp = result["comparison"]
-            print(f"  Prediction: MaxT={pred[0]:.2f}, MinT={pred[1]:.2f}, Wind={pred[2]:.2f}")
-            if comp:
-                 print(f"  API Fetched: {comp.get('api_data_fetched', False)}")
-                 if comp.get('api_general_forecast'):
-                      api_temp = comp['details'].get('api_avg_temp')
-                      api_wind = comp['details'].get('api_wind')
-                      # Format strings separately to avoid ValueError with 'N/A'
-                      api_temp_str = f"{api_temp:.2f}" if api_temp is not None else "N/A"
-                      api_wind_str = f"{api_wind:.2f}" if api_wind is not None else "N/A"
-                      print(f"  API Forecast: AvgT={api_temp_str}, HighWind={api_wind_str}")
-                 print(f"  Comparison (Temperature): {comp['comparison'].get('temperature', 'error')}")
-                 print(f"  Comparison (Wind): {comp['comparison'].get('wind', 'error')}")
-            else:
-                 print("  Comparison data unavailable.")
-        else:
-            print(f"  Status: {result['status']} - {result['message']}")
+    # --- 4. Print Final Summary based on output format preference ---
+    if args.verbose:
+        print_verbose_summary(all_results, args.date)
+    else:
+        print_default_summary(all_results, args.date)
 
     print("\n--- Live Prediction Script Finished ---")
 
@@ -204,9 +359,8 @@ if __name__ == "__main__":
                         help="Date for prediction in YYYY-MM-DD format")
     parser.add_argument('--models_base_dir', type=str, default=config.DEFAULT_MODELS_BASE_DIR,
                         help="Base directory where trained models and stats are saved")
-
-    # Add optional argument to specify model paths directly? Might be complex.
-    # Sticking to the base directory approach for now.
+    parser.add_argument('--verbose', action='store_true',
+                        help="Display detailed output including all API data and comparison metrics")
 
     args = parser.parse_args()
 
