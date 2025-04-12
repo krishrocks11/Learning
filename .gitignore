@@ -15,6 +15,7 @@ Thumbs.db
 /build/
 /dist/
 /out/
+.vscode/
 
 # Placeholder for specific folders
 # Add your folder paths here
